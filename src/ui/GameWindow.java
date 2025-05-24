@@ -1,28 +1,22 @@
 package ui;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+import javax.swing.*;
 
 public class GameWindow extends JFrame {
-
     public GameWindow() {
         setTitle("Pacman Game");
-        setSize(600, 600); // width, height
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // center on screen
         setResizable(false);
 
-        // Add game panel (will draw Pacman later here)
-        JPanel gamePanel = new JPanel();
-        gamePanel.setBackground(java.awt.Color.BLACK); // Set background color
-        add(gamePanel);
+        GameBoard gameBoard = new GameBoard();
+        add(gameBoard);
 
-
-        setVisible(true); // show the window
+        pack(); // adjust frame size to GameBoard
+        setLocationRelativeTo(null); // center
+        setVisible(true);
     }
 
-    // Main method to run the game
     public static void main(String[] args) {
-        new GameWindow();
+        SwingUtilities.invokeLater(GameWindow::new);
     }
 }
