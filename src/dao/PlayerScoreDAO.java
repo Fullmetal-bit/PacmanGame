@@ -1,6 +1,6 @@
 package dao;
 
-import model.PlayerScore;`
+import model.PlayerScore;
 import util.DBConnection;
 
 import java.sql.*;
