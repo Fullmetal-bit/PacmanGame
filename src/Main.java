@@ -1,7 +1,9 @@
-import ui.GameWindow;
+import ui.GameMenu;
+
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Pacman Game Starting...");
-        new GameWindow();
+        new GameMenu();
+
     }
 }
