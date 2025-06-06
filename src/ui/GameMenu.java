@@ -15,31 +15,68 @@ public class GameMenu extends JFrame implements ActionListener {
 
     public GameMenu() {
         setTitle("Pacman Game Menu");
-        setSize(400, 300);
+        setSize(450, 350);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
+        // Use a main panel with padding and background color
+        JPanel mainPanel = new JPanel();
+        mainPanel.setBackground(new Color(30, 30, 30)); // dark background
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
+        mainPanel.setLayout(new BorderLayout());
 
-        startButton = new JButton("Start");
-        highScoreButton = new JButton("High Score");
-        exitButton = new JButton("Exit");
+        // Title label with custom font and color
+        JLabel titleLabel = new JLabel("PACMAN", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Verdana", Font.BOLD, 40));
+        titleLabel.setForeground(new Color(255, 204, 0)); // Pacman yellow color
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // Panel for buttons with vertical layout and spacing
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(3, 1, 0, 20));
+        buttonPanel.setOpaque(false); // transparent background
+
+        startButton = createMenuButton("Start");
+        highScoreButton = createMenuButton("High Score");
+        exitButton = createMenuButton("Exit");
 
         startButton.addActionListener(this);
         highScoreButton.addActionListener(this);
         exitButton.addActionListener(this);
 
-        panel.add(startButton);
-        panel.add(highScoreButton);
-        panel.add(exitButton);
+        buttonPanel.add(startButton);
+        buttonPanel.add(highScoreButton);
+        buttonPanel.add(exitButton);
 
-        add(panel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.CENTER);
 
-        JLabel titleLabel = new JLabel("PACMAN GAME", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        add(titleLabel, BorderLayout.NORTH);
+        add(mainPanel);
 
         setVisible(true);
+    }
+
+    // Helper to create styled buttons with hover effect
+    private JButton createMenuButton(String text) {
+        JButton button = new JButton(text);
+        button.setFocusPainted(false);
+        button.setFont(new Font("Verdana", Font.PLAIN, 20));
+        button.setBackground(new Color(255, 204, 0));
+        button.setForeground(new Color(30, 30, 30));
+        button.setBorder(BorderFactory.createLineBorder(new Color(255, 204, 0), 2));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // Add simple hover effect using mouse listener
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(255, 229, 102)); // lighter yellow
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(255, 204, 0));
+            }
+        });
+
+        return button;
     }
 
     @Override

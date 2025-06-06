@@ -3,6 +3,7 @@ package ui;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Random;
 import javax.swing.*;
 
@@ -62,6 +63,10 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
                     velocityX = speed;
                     velocityY = 0;
                 }
+                default -> {
+                    velocityX = 0;
+                    velocityY = 0;
+                }
             }
         }
 
@@ -100,7 +105,7 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
             "XXXX XXXX XXXX XXXX",
             "OOOX X       X XOOO",
             "XXXX X XXrXX X XXXX",
-            "O       bpo       O",
+            "X       bpo       X",
             "XXXX X XXXXX X XXXX",
             "OOOX X       X XOOO",
             "XXXX X XXXXX X XXXX",
@@ -125,12 +130,10 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
     private int score = 0;
     private int lives = 3;
     private boolean gameOver = false;
-
-    // New: Track desired direction for smoother turning
-    private char desiredDirection = 'R'; // Initial direction
-
-    // New: Pause flag
     private boolean paused = false;
+    private boolean gameStarted = false;  // <-- NEW: game start flag
+
+    private char desiredDirection = 'R';
 
     public GameBoard() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -138,7 +141,6 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
         addKeyListener(this);
         setFocusable(true);
 
-        // Load images
         wallImage = loadImage("/images/wall.png");
         blueGhostImage = loadImage("/images/blueGhost.png");
         orangeGhostImage = loadImage("/images/orangeGhost.png");
@@ -163,9 +165,11 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
 
     private Image loadImage(String path) {
         try {
-            return new ImageIcon(getClass().getResource(path)).getImage();
+            Image img = new ImageIcon(getClass().getResource(path)).getImage();
+            return img;
         } catch (Exception e) {
-            System.err.println("Image not found: " + path);
+            System.err.println("Exception while loading image: " + path);
+            e.printStackTrace();
             return null;
         }
     }
@@ -176,93 +180,193 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
         ghosts = new HashSet<>();
 
         for (int r = 0; r < rowCount; r++) {
+            if (r >= tileMap.length) break;
             for (int c = 0; c < columnCount; c++) {
+                if (c >= tileMap[r].length()) break;
                 char tileMapChar = tileMap[r].charAt(c);
 
                 int x = c * tileSize;
                 int y = r * tileSize;
 
                 switch (tileMapChar) {
-                    case 'X' -> walls.add(new Block(wallImage, x, y, tileSize, tileSize));
-                    case 'b' -> ghosts.add(new Block(blueGhostImage, x, y, tileSize, tileSize));
-                    case 'o' -> ghosts.add(new Block(orangeGhostImage, x, y, tileSize, tileSize));
-                    case 'p' -> ghosts.add(new Block(pinkGhostImage, x, y, tileSize, tileSize));
-                    case 'r' -> ghosts.add(new Block(redGhostImage, x, y, tileSize, tileSize));
-                    case 'P' -> pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
+                    case 'X' -> {
+                        if (wallImage != null)
+                            walls.add(new Block(wallImage, x, y, tileSize, tileSize));
+                    }
+                    case 'b' -> {
+                        if (blueGhostImage != null)
+                            ghosts.add(new Block(blueGhostImage, x, y, tileSize, tileSize));
+                    }
+                    case 'o' -> {
+                        if (orangeGhostImage != null)
+                            ghosts.add(new Block(orangeGhostImage, x, y, tileSize, tileSize));
+                    }
+                    case 'p' -> {
+                        if (pinkGhostImage != null)
+                            ghosts.add(new Block(pinkGhostImage, x, y, tileSize, tileSize));
+                    }
+                    case 'r' -> {
+                        if (redGhostImage != null)
+                            ghosts.add(new Block(redGhostImage, x, y, tileSize, tileSize));
+                    }
+                    case 'P' -> {
+                        if (pacmanRightImage != null)
+                            pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
+                    }
                     case ' ' -> foods.add(new Block(null, x + 14, y + 14, 4, 4));
+                    default -> {
+                        // unknown character
+                    }
                 }
             }
         }
+    }
+    private void draw(Graphics g) {
+        // Draw walls
+        for (Block wall : walls) {
+            if (wall.image != null)
+                g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, this);
+            else {
+                // fallback: draw a blue rectangle for walls if image missing
+                g.setColor(Color.BLUE);
+                g.fillRect(wall.x, wall.y, wall.width, wall.height);
+            }
+        }
+
+        // Draw foods
+        g.setColor(Color.YELLOW);
+        for (Block food : foods) {
+            g.fillOval(food.x, food.y, food.width, food.height);
+        }
+
+        // Draw ghosts
+        for (Block ghost : ghosts) {
+            if (ghost.image != null)
+                g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, this);
+            else {
+                g.setColor(Color.PINK);
+                g.fillOval(ghost.x, ghost.y, ghost.width, ghost.height);
+            }
+        }
+
+        // Draw Pacman
+        if (pacman != null) {
+            if (pacman.image != null)
+                g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, this);
+            else {
+                g.setColor(Color.ORANGE);
+                g.fillOval(pacman.x, pacman.y, pacman.width, pacman.height);
+            }
+        }
+
+        // Draw score and lives
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Score: " + score, 10, 20);
+        g.drawString("Lives: " + lives, 10, 40);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        draw(g);
 
-        // Draw paused overlay if paused
-        if (paused) {
-            g.setColor(new Color(255, 255, 255, 150)); // semi-transparent white overlay
-            g.fillRect(0, 0, getWidth(), getHeight());
+        if (!gameStarted) {
+            drawStartScreen(g);
+        } else {
+            draw(g);
 
-            g.setColor(Color.RED);
-            g.setFont(new Font("Arial", Font.BOLD, 48));
-            String pauseMsg = "PAUSED";
-            FontMetrics fm = g.getFontMetrics();
-            int x = (getWidth() - fm.stringWidth(pauseMsg)) / 2;
-            int y = getHeight() / 2;
-            g.drawString(pauseMsg, x, y);
+            if (paused) {
+                g.setColor(new Color(255, 255, 255, 150));
+                g.fillRect(0, 0, getWidth(), getHeight());
+
+                g.setColor(Color.RED);
+                g.setFont(new Font("Arial", Font.BOLD, 48));
+                String pauseMsg = "PAUSED";
+                FontMetrics fm = g.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(pauseMsg)) / 2;
+                int y = getHeight() / 2;
+                g.drawString(pauseMsg, x, y);
+            }
+
+            if (gameOver) {
+                g.setColor(Color.RED);
+                g.setFont(new Font("Arial", Font.BOLD, 48));
+                String gameOverMsg = "GAME OVER!";
+                FontMetrics fm = g.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(gameOverMsg)) / 2;
+                int y = getHeight() / 2 - 30;
+                g.drawString(gameOverMsg, x, y);
+
+                String scoreMsg = "Final Score: " + score;
+                int sx = (getWidth() - g.getFontMetrics().stringWidth(scoreMsg)) / 2;
+                int sy = y + 50;
+                g.drawString(scoreMsg, sx, sy);
+
+                String restartMsg = "Press 'R' to Restart";
+                int rx = (getWidth() - g.getFontMetrics().stringWidth(restartMsg)) / 2;
+                int ry = sy + 40;
+                g.drawString(restartMsg, rx, ry);
+            }
         }
     }
 
-    public void draw(Graphics g) {
-        for (Block wall : walls) {
-            if (wall.image != null)
-                g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
-        }
+    private void drawStartScreen(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, getWidth(), getHeight());
 
-        g.setColor(Color.WHITE);
-        for (Block food : foods) {
-            g.fillRect(food.x, food.y, food.width, food.height);
-        }
+        g.setColor(Color.YELLOW);
+        g.setFont(new Font("Arial", Font.BOLD, 36));
+        String title = "PACMAN GAME";
+        int x = (getWidth() - g.getFontMetrics().stringWidth(title)) / 2;
+        int y = getHeight() / 4;
+        g.drawString(title, x, y);
 
-        for (Block ghost : ghosts) {
-            if (ghost.image != null)
-                g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
-        }
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        String[] instructions = {
+                "Instructions:",
+                "P - Pause/Unpause",
+                "R - Restart",
+                "Arrow Keys / WASD - Move Pacman",
+                "Press ENTER to Start"
+        };
 
-        if (pacman.image != null)
-            g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
+        int lineHeight = g.getFontMetrics().getHeight() + 5;
+        int startY = y + 60;
 
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
-        if (gameOver) {
-            g.drawString("Game Over! Final Score: " + score, tileSize / 2, tileSize / 2);
-        } else {
-            g.drawString("Lives: " + lives + "  Score: " + score, tileSize / 2, tileSize / 2);
+        for (int i = 0; i < instructions.length; i++) {
+            int ix = (getWidth() - g.getFontMetrics().stringWidth(instructions[i])) / 2;
+            int iy = startY + i * lineHeight;
+            g.drawString(instructions[i], ix, iy);
         }
     }
 
     public void move() {
-        // Don't move if paused or game over
-        if (paused || gameOver) return;
+        if (paused || gameOver || !gameStarted) return;
+
+        if (pacman == null) return;
 
         // Try to change direction to desiredDirection if possible
         if (canMoveInDirection(pacman, desiredDirection)) {
             pacman.updateDirection(desiredDirection);
             switch (desiredDirection) {
-                case 'U' -> pacman.image = pacmanUpImage;
-                case 'D' -> pacman.image = pacmanDownImage;
-                case 'L' -> pacman.image = pacmanLeftImage;
-                case 'R' -> pacman.image = pacmanRightImage;
+                case 'U' -> {
+                    if (pacmanUpImage != null) pacman.image = pacmanUpImage;
+                }
+                case 'D' -> {
+                    if (pacmanDownImage != null) pacman.image = pacmanDownImage;
+                }
+                case 'L' -> {
+                    if (pacmanLeftImage != null) pacman.image = pacmanLeftImage;
+                }
+                case 'R' -> {
+                    if (pacmanRightImage != null) pacman.image = pacmanRightImage;
+                }
             }
         }
 
-        // Move Pacman by velocity
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
-        // Collision with walls - revert if collided
         for (Block wall : walls) {
             if (collision(pacman, wall)) {
                 pacman.x -= pacman.velocityX;
@@ -271,8 +375,11 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        // Ghosts movement and collision
-        for (Block ghost : ghosts) {
+        Iterator<Block> ghostIterator = ghosts.iterator();
+        while (ghostIterator.hasNext()) {
+            Block ghost = ghostIterator.next();
+            if (ghost == null) continue;
+
             if (collision(ghost, pacman)) {
                 lives--;
                 if (lives <= 0) {
@@ -280,35 +387,39 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
                     return;
                 }
                 resetPositions();
+                break;
             }
 
-            if (ghost.y == tileSize * 9 && ghost.direction != 'U' && ghost.direction != 'D') {
-                ghost.updateDirection('U');
-            }
-
-            ghost.x += ghost.velocityX;
-            ghost.y += ghost.velocityY;
-
-            for (Block wall : walls) {
-                if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
-                    ghost.x -= ghost.velocityX;
-                    ghost.y -= ghost.velocityY;
-                    char newDirection = directions[random.nextInt(directions.length)];
-                    ghost.updateDirection(newDirection);
+            try {
+                if (ghost.y == tileSize * 9 && ghost.direction != 'U' && ghost.direction != 'D') {
+                    ghost.updateDirection('U');
                 }
+
+                ghost.x += ghost.velocityX;
+                ghost.y += ghost.velocityY;
+
+                for (Block wall : walls) {
+                    if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
+                        ghost.x -= ghost.velocityX;
+                        ghost.y -= ghost.velocityY;
+                        char newDirection = directions[random.nextInt(directions.length)];
+                        ghost.updateDirection(newDirection);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
-        // Check food eaten
-        Block foodEaten = null;
-        for (Block food : foods) {
+        Iterator<Block> foodIterator = foods.iterator();
+        while (foodIterator.hasNext()) {
+            Block food = foodIterator.next();
             if (collision(pacman, food)) {
-                foodEaten = food;
                 score += 10;
+                foodIterator.remove();
                 break;
             }
         }
-        if (foodEaten != null) foods.remove(foodEaten);
 
         if (foods.isEmpty()) {
             loadMap();
@@ -317,6 +428,8 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
     }
 
     private boolean canMoveInDirection(Block block, char direction) {
+        if (block == null) return false;
+
         int speed = tileSize / 4;
         int nextX = block.x;
         int nextY = block.y;
@@ -326,6 +439,9 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
             case 'D' -> nextY += speed;
             case 'L' -> nextX -= speed;
             case 'R' -> nextX += speed;
+            default -> {
+                return false;
+            }
         }
 
         Block nextPos = new Block(block.image, nextX, nextY, block.width, block.height);
@@ -336,20 +452,25 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
     }
 
     private boolean collision(Block a, Block b) {
+        if (a == null || b == null) return false;
+
         Rectangle rectA = new Rectangle(a.x, a.y, a.width, a.height);
         Rectangle rectB = new Rectangle(b.x, b.y, b.width, b.height);
         return rectA.intersects(rectB);
     }
 
     private void resetPositions() {
-        pacman.x = pacman.startX;
-        pacman.y = pacman.startY;
-        pacman.velocityX = 0;
-        pacman.velocityY = 0;
-        pacman.direction = 'R';
-        desiredDirection = 'R';
+        if (pacman != null) {
+            pacman.x = pacman.startX;
+            pacman.y = pacman.startY;
+            pacman.velocityX = 0;
+            pacman.velocityY = 0;
+            pacman.direction = 'R';
+            desiredDirection = 'R';
+        }
 
         for (Block ghost : ghosts) {
+            if (ghost == null) continue;
             ghost.x = ghost.startX;
             ghost.y = ghost.startY;
             ghost.velocityX = 0;
@@ -359,9 +480,20 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
         }
     }
 
+    private void restartGame() {
+        score = 0;
+        lives = 3;
+        gameOver = false;
+        paused = false;
+        gameStarted = true;  // also start game on restart
+        loadMap();
+        resetPositions();
+        repaint();
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (!paused && !gameOver) {
+        if (gameStarted && !paused && !gameOver) {
             move();
             repaint();
         }
@@ -376,19 +508,40 @@ public class GameBoard extends JPanel implements ActionListener, KeyListener {
     public void keyPressed(KeyEvent e) {
         char key = Character.toUpperCase(e.getKeyChar());
 
+        if (!gameStarted) {
+            // On start screen, only ENTER to start the game
+            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                gameStarted = true;
+                repaint();
+            }
+            return;
+        }
+
         if (key == 'P') {
             paused = !paused;
             repaint();
             return;
         }
 
+        if (key == 'R') {
+            restartGame();
+            return;
+        }
+
         if (paused || gameOver) return;
 
         switch (key) {
-            case 'W', 'I', KeyEvent.VK_UP -> desiredDirection = 'U';
-            case 'S', 'K', KeyEvent.VK_DOWN -> desiredDirection = 'D';
-            case 'A', 'J', KeyEvent.VK_LEFT -> desiredDirection = 'L';
-            case 'D', 'L', KeyEvent.VK_RIGHT -> desiredDirection = 'R';
+            case 'W', 'I' -> desiredDirection = 'U';
+            case 'S', 'K' -> desiredDirection = 'D';
+            case 'A', 'J' -> desiredDirection = 'L';
+            case 'D', 'L' -> desiredDirection = 'R';
+            default -> {
+                int code = e.getKeyCode();
+                if (code == KeyEvent.VK_UP) desiredDirection = 'U';
+                else if (code == KeyEvent.VK_DOWN) desiredDirection = 'D';
+                else if (code == KeyEvent.VK_LEFT) desiredDirection = 'L';
+                else if (code == KeyEvent.VK_RIGHT) desiredDirection = 'R';
+            }
         }
     }
 

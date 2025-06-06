@@ -5,9 +5,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBConnection {
-    private static final String URL = "jdbc:mysql://localhost:3306/pacman_db";
+    private static final String URL = "jdbc:mysql://localhost:3306/pacman_db?allowPublicKeyRetrieval=true&useSSL=false";
     private static final String USER = "root";
-    private static final String PASSWORD = "@No1jocker"; // Replace with your password
+    private static final String PASSWORD = "@No1jocker"; // Your password
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASSWORD);
